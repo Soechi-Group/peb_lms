@@ -50,47 +50,49 @@ def sync_user_program_by_rank(doc):
     try:
         if doc.crew_rank and doc.enabled:
             matched_programs = set()
-            programs = frappe.get_all("LMS Program", fields=["name", "title"])
 
-            for p in programs:
-                program = frappe.get_doc("LMS Program", p.name)
+            # Query the new Program Rank Eligibility DocType
+            eligible_mappings = frappe.get_all(
+                "Program Rank Eligibility",
+                filters={"crew_rank": doc.crew_rank},
+                fields=["lms_program"]
+            )
 
-                # cek apakah program punya member template dengan rank ini
-                for m in program.program_members:
-                    if m.crew_rank == doc.crew_rank:
-                        matched_programs.add(program.name)
+            for mapping in eligible_mappings:
+                program_name = mapping.lms_program
+                matched_programs.add(program_name)
 
-                        # cek apakah user sudah jadi member program ini
-                        member_name = frappe.db.exists(
+                # Check if user is already a member of this program
+                member_name = frappe.db.exists(
+                    "LMS Program Member",
+                    {"parent": program_name, "member": doc.name}
+                )
+
+                if member_name:
+                    # Update rank if different
+                    current_rank = frappe.db.get_value(
+                        "LMS Program Member", member_name, "crew_rank")
+                    if current_rank != doc.crew_rank:
+                        frappe.db.set_value(
                             "LMS Program Member",
-                            {"parent": program.name, "member": doc.name}
+                            member_name,
+                            {"crew_rank": doc.crew_rank}
                         )
-
-                        if member_name:
-                            # update rank jika berbeda
-                            current_rank = frappe.db.get_value(
-                                "LMS Program Member", member_name, "crew_rank")
-                            if current_rank != doc.crew_rank:
-                                frappe.db.set_value(
-                                    "LMS Program Member",
-                                    member_name,
-                                    {"crew_rank": doc.crew_rank}
-                                )
-                                frappe.logger().info(
-                                    f"[AUTO-UPDATE] Rank user {doc.full_name} diupdate di {program.title}"
-                                )
-                        else:
-                            # tambahkan user baru
-                            program.append("program_members", {
-                                "member": doc.name,
-                                "crew_rank": doc.crew_rank,
-                                "full_name": doc.full_name,
-                                "progress": 0
-                            })
-                            program.save(ignore_permissions=True)
-                            frappe.logger().info(
-                                f"User {doc.full_name} otomatis masuk ke {program.title}")
-                        break
+                        frappe.logger().info(
+                            f"[AUTO-UPDATE] Rank user {doc.full_name} diupdate di {program_name}"
+                        )
+                else:
+                    # Add new user to program
+                    program = frappe.get_doc("LMS Program", program_name)
+                    program.append("program_members", {
+                        "member": doc.name,
+                        "crew_rank": doc.crew_rank,
+                        "full_name": doc.full_name,
+                        "progress": 0
+                    })
+                    program.save(ignore_permissions=True)
+                    frappe.logger().info(
+                        f"User {doc.full_name} otomatis masuk ke {program_name}")
 
             # 🔽 Hapus dari program lain yang tidak cocok rank-nya
             memberships = frappe.get_all(
