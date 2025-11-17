@@ -6,6 +6,8 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import ceil
 
+from lms.lms.webhooks import send_larksuite_notification
+
 
 class LMSEnrollment(Document):
 	def validate(self):
@@ -74,6 +76,16 @@ class LMSEnrollment(Document):
 
 			average_progress = ceil(total_progress / len(courses))
 			frappe.db.set_value("LMS Program Member", program.name, "progress", average_progress)
+
+			if average_progress >= 100:
+				scores = []
+				if courses:
+					scores = frappe.get_all(
+						"LMS Quiz Submission",
+						filters={"member": self.member, "course": ["in", courses]},
+						fields=["quiz_title", "score", "score_out_of", "percentage"]
+					)
+				send_larksuite_notification(self.member, passed=True, scores=scores)
 
 
 @frappe.whitelist()
