@@ -212,6 +212,7 @@ def reset_user_enrollment(user):
     frappe.db.delete("LMS Enrollment", {"member": user})
     frappe.db.delete("LMS Program Member", {"member": user})
     frappe.db.delete("LMS Quiz Submission", {"member": user})
+    frappe.db.delete("LMS Course Progress", {"member": user})
 
 @frappe.whitelist()
 def create_or_update_user(user_data):
