@@ -5,6 +5,7 @@ from frappe.utils import escape_html, random_string
 from frappe.website.utils import cleanup_page_name, is_signup_disabled
 
 from lms.lms.utils import get_country_code
+from lms.lms.doctype.lms_enrollment.lms_enrollment import create_membership
 
 
 def validate_username_duplicates(doc, method):
@@ -17,6 +18,10 @@ def validate_username_duplicates(doc, method):
 
     if len(doc.username) < 4:
         doc.username = doc.email.replace("@", "").replace(".", "")
+
+    if doc.is_new() and not doc.new_password:
+        doc.new_password = random_string(10)
+        doc.send_welcome_email = 1
 
 
 def after_insert(doc, method):
@@ -93,6 +98,17 @@ def sync_user_program_by_rank(doc):
                     program.save(ignore_permissions=True)
                     frappe.logger().info(
                         f"User {doc.full_name} otomatis masuk ke {program_name}")
+
+                    # Automatically enroll user in program courses
+                    courses = frappe.get_all("LMS Program Course", filters={"parent": program_name}, fields=["course"])
+                    for course_doc in courses:
+                        try:
+                            # Check if user is already enrolled
+                            if not frappe.db.exists("LMS Enrollment", {"member": doc.name, "course": course_doc.course}):
+                                create_membership(course_doc.course, member=doc.name)
+                                frappe.logger().info(f"User {doc.full_name} automatically enrolled in course {course_doc.course}")
+                        except Exception:
+                            frappe.log_error(frappe.get_traceback(), f"Failed to enroll {doc.full_name} in course {course_doc.course}")
 
             # 🔽 Hapus dari program lain yang tidak cocok rank-nya
             memberships = frappe.get_all(
