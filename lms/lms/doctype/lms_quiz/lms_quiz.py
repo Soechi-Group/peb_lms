@@ -114,6 +114,7 @@ def quiz_summary(quiz, results):
 			"course",
 			"enable_negative_marking",
 			"marks_to_cut",
+			"max_attempts"
 		],
 		as_dict=1,
 	)
@@ -130,13 +131,19 @@ def quiz_summary(quiz, results):
 	save_progress_after_quiz(quiz_details, percentage)
 
 	if percentage < quiz_details.passing_percentage:
-		scores = [{
-			"quiz_title": quiz_details.name,
-			"score": score,
-			"score_out_of": score_out_of,
-			"percentage": percentage
-		}]
-		send_larksuite_notification(frappe.session.user, passed=False, scores=scores)
+		if quiz_details.max_attempts > 0:
+			submission_count = frappe.db.count(
+				"LMS Quiz Submission",
+				{"quiz": quiz, "member": frappe.session.user}
+			)
+			if submission_count >= quiz_details.max_attempts:
+				scores = [{
+					"quiz_title": quiz_details.name,
+					"score": score,
+					"score_out_of": score_out_of,
+					"percentage": percentage
+				}]
+				send_larksuite_notification(frappe.session.user, passed=False, scores=scores)
 
 	return {
 		"score": score,

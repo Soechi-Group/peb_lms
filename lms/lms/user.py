@@ -206,3 +206,39 @@ def on_login(login_manager):
     default_app = frappe.db.get_single_value("System Settings", "default_app")
     if default_app == "lms":
         frappe.local.response["home_page"] = "/lms"
+
+
+def reset_user_enrollment(user):
+    frappe.db.delete("LMS Enrollment", {"member": user})
+    frappe.db.delete("LMS Program Member", {"member": user})
+    frappe.db.delete("LMS Quiz Submission", {"member": user})
+
+@frappe.whitelist()
+def create_or_update_user(user_data):
+
+    email = user_data.get("email")
+
+    if not email:
+        frappe.throw(_("Email is required"))
+
+    existing_user = frappe.db.exists("User", {"email": email})
+    if existing_user:
+        # Reset enrollment first
+        reset_user_enrollment(existing_user)
+
+        # Update existing user
+        user = frappe.get_doc("User", existing_user)
+        user.update(user_data)
+        user.save(ignore_permissions=True)
+        
+        frappe.db.commit()
+        return user
+    else:
+        # Create new user
+        new_user = frappe.get_doc({
+            "doctype": "User",
+            **user_data
+        })
+        new_user.insert(ignore_permissions=True)
+        frappe.db.commit()
+        return new_user
