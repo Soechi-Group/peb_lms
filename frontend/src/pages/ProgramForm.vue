@@ -405,10 +405,10 @@ const saveProgram = () => {
 			rank: crewRank.value,
 		})
 			.then(() => {
-				toast.success(__('Rank eligibility saved.'))
+				toast.success(__('Job role saved.'))
 			})
 			.catch((err) => {
-				toast.error(err.messages?.[0] || __('Failed to save rank eligibility.'))
+				toast.error(err.messages?.[0] || __('Failed to save job role.'))
 			})
 	}
 
