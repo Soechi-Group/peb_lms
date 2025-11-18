@@ -1683,6 +1683,33 @@ def get_course_progress_distribution(course):
     }
 
 
+@frappe.whitelist()
+def get_program_rank_eligibility(program):
+    """Get the crew rank for a given program."""
+    eligibility = frappe.get_value(
+        "Program Rank Eligibility", {"lms_program": program}, "crew_rank"
+    )
+    return {"crew_rank": eligibility}
+
+
+@frappe.whitelist()
+def update_program_rank_eligibility(program, rank):
+    """Update the crew rank for a given program."""
+    if not frappe.db.exists("Program Rank Eligibility", {"lms_program": program}):
+        doc = frappe.new_doc("Program Rank Eligibility")
+        doc.lms_program = program
+        doc.crew_rank = rank
+        doc.insert(ignore_permissions=True)
+    else:
+        frappe.db.set_value(
+            "Program Rank Eligibility",
+            {"lms_program": program},
+            "crew_rank",
+            rank,
+            update_modified=False,
+        )
+
+
 def get_average_course_progress(progress_list):
     if not progress_list:
         return 0
