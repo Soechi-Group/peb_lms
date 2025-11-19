@@ -123,6 +123,23 @@
 				</ListSelectBanner>
 			</ListView>
 		</div>
+
+		<!-- Job Role Eligibility -->
+		<div class="mt-10">
+			<div class="flex items-center justify-between mb-2">
+				<div class="text-lg text-ink-gray-9 font-semibold">
+					{{ __('Enrolled Job Role') }}
+				</div>
+			</div>
+			<Link
+				v-model="crewRank"
+				doctype="Crew Rank"
+				:label="__('Job Role')"
+				:description="
+					__('Users with this crew rank will be enrolled in the program.')
+				"
+			/>
+		</div>
 	</div>
 
 	<Dialog
@@ -186,8 +203,9 @@ import {
 	ListSelectBanner,
 	usePageMeta,
 	toast,
+	frappeRequest,
 } from 'frappe-ui'
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { Plus, Trash2 } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { sessionStore } from '@/stores/session'
@@ -200,6 +218,7 @@ const showDialog = ref(false)
 const currentForm = ref(null)
 const course = ref(null)
 const member = ref(null)
+const crewRank = ref(null)
 const router = useRouter()
 
 const props = defineProps({
@@ -207,6 +226,18 @@ const props = defineProps({
 		type: String,
 		required: true,
 	},
+})
+
+onMounted(() => {
+	if (props.programName !== 'new') {
+		call('lms.lms.api.get_program_rank_eligibility', {
+			program: props.programName,
+		}).then((data) => {
+			if (data) {
+				crewRank.value = data.crew_rank
+			}
+		})
+	}
 })
 
 const rankCache = ref({})
@@ -368,6 +399,19 @@ const updateOrder = (e) => {
 }
 
 const saveProgram = () => {
+	if (crewRank.value) {
+		call('lms.lms.api.update_program_rank_eligibility', {
+			program: program.doc.name,
+			rank: crewRank.value,
+		})
+			.then(() => {
+				toast.success(__('Job role saved.'))
+			})
+			.catch((err) => {
+				toast.error(err.messages?.[0] || __('Failed to save job role.'))
+			})
+	}
+
 	call('frappe.model.rename_doc.update_document_title', {
 		doctype: 'LMS Program',
 		docname: program.doc.name,
