@@ -135,9 +135,8 @@
 				v-model="crewRank"
 				doctype="Crew Rank"
 				:label="__('Job Role')"
-				:description="
-					__('Users with this job role will be enrolled in the program.')
-				"
+				:readonly="hasMembers"
+				:description="__('Users with this job role will be enrolled in the program. You cannot modify this field once this program has enrolled members.')"
 			/>
 		</div>
 	</div>
@@ -248,6 +247,8 @@ const program = createDocumentResource({
 	auto: true,
 	cache: ['program', props.programName],
 })
+
+const hasMembers = computed(() => program.doc?.program_members?.length > 0)
 
 watch(
 	() => program.doc?.program_members,
