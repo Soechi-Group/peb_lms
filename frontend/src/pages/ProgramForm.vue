@@ -136,7 +136,7 @@
 				doctype="Crew Rank"
 				:label="__('Job Role')"
 				:description="
-					__('Users with this crew rank will be enrolled in the program.')
+					__('Users with this job role will be enrolled in the program.')
 				"
 			/>
 		</div>
