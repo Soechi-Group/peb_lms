@@ -89,8 +89,9 @@ class LMSEnrollment(Document):
 
 
 @frappe.whitelist()
-def create_membership(course, batch=None, member=None, member_type="Student", role="Member"):
-	if frappe.db.get_value("LMS Course", course, "disable_self_learning"):
+def create_membership(course, batch=None, member=None, member_type="Student", role="Member", force=False):
+
+	if not force and frappe.db.get_value("LMS Course", course, "disable_self_learning"):
 		return False
 
 	enrollment = frappe.new_doc("LMS Enrollment")

@@ -105,7 +105,7 @@ def sync_user_program_by_rank(doc):
                         try:
                             # Check if user is already enrolled
                             if not frappe.db.exists("LMS Enrollment", {"member": doc.name, "course": course_doc.course}):
-                                create_membership(course_doc.course, member=doc.name)
+                                create_membership(course_doc.course, member=doc.name, force=True)
                                 frappe.logger().info(f"User {doc.full_name} automatically enrolled in course {course_doc.course}")
                         except Exception:
                             frappe.log_error(frappe.get_traceback(), f"Failed to enroll {doc.full_name} in course {course_doc.course}")
