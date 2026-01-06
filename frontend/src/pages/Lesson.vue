@@ -699,7 +699,6 @@ const updateVideoTime = (video) => {
 }
 
 const hasVideos = ref(false)
-const completionThreshold = ref(30)
 
 const updateCompletionThreshold = () => {
 	let totalDuration = 0
@@ -718,12 +717,6 @@ const updateCompletionThreshold = () => {
 		}
 	})
 
-	if (totalDuration > 0) {
-		// Keep calculate threshold for reference or other uses, but we won't use it for completion trigger if hasVideos is true
-		completionThreshold.value = Math.max(0, totalDuration - 5)
-	} else {
-		completionThreshold.value = 30
-	}
 }
 
 const startTimer = () => {
@@ -731,7 +724,7 @@ const startTimer = () => {
 		timer.value++
 		// If videos exist, we rely on 'ended' event, so we don't auto-complete via timer.
 		// If NO videos exist, we use the fallback of 30s (or whatever completionThreshold is set to, which defaults to 30)
-		if (!hasVideos.value && timer.value >= completionThreshold.value) {
+		if (!hasVideos.value && timer.value >= 30) {
 			clearInterval(timerInterval)
 			markProgress()
 		}
