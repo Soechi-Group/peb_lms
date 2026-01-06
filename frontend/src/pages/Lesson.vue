@@ -637,8 +637,20 @@ const getPlyrSource = async () => {
 	await nextTick()
 	if (plyrSources.value.length == 0) {
 		plyrSources.value = await enablePlyr()
+		plyrSources.value.forEach((player) => {
+			player.on('ready', updateCompletionThreshold)
+			player.on('loadedmetadata', updateCompletionThreshold)
+			player.on('ended', markProgress)
+		})
 	}
 	updateVideoWatchDuration()
+	
+	const videos = document.querySelectorAll('video')
+	videos.forEach((video) => {
+		video.addEventListener('loadedmetadata', updateCompletionThreshold)
+		video.addEventListener('ended', markProgress)
+	})
+	setTimeout(updateCompletionThreshold, 1000)
 }
 
 const updateVideoWatchDuration = () => {
@@ -686,10 +698,40 @@ const updateVideoTime = (video) => {
 	}
 }
 
+const hasVideos = ref(false)
+const completionThreshold = ref(30)
+
+const updateCompletionThreshold = () => {
+	let totalDuration = 0
+	hasVideos.value = false
+	
+	plyrSources.value.forEach((player) => {
+		totalDuration += player.duration || 0
+		hasVideos.value = true
+	})
+
+	const videos = document.querySelectorAll('video')
+	videos.forEach((video) => {
+		if (!video.closest('.plyr')) {
+			totalDuration += video.duration || 0
+			hasVideos.value = true
+		}
+	})
+
+	if (totalDuration > 0) {
+		// Keep calculate threshold for reference or other uses, but we won't use it for completion trigger if hasVideos is true
+		completionThreshold.value = Math.max(0, totalDuration - 5)
+	} else {
+		completionThreshold.value = 30
+	}
+}
+
 const startTimer = () => {
 	let timerInterval = setInterval(() => {
 		timer.value++
-		if (timer.value == 30) {
+		// If videos exist, we rely on 'ended' event, so we don't auto-complete via timer.
+		// If NO videos exist, we use the fallback of 30s (or whatever completionThreshold is set to, which defaults to 30)
+		if (!hasVideos.value && timer.value >= completionThreshold.value) {
 			clearInterval(timerInterval)
 			markProgress()
 		}
